@@ -1,161 +1,219 @@
-# Passos para Rodar um Projeto .NET no Linux
+# Steps to Run a .NET Project on Linux
 
-Driver USB da estação de monitoramento de umidade do solo.
+USB driver for the soil moisture monitoring station.
 
-## Instalação do .NET 8.0 no Linux
+## Automated Installation and Publishing (arm64 and x64 only)
 
-### Usando o Snap (Recomendado)
+To simplify the process of setting up and publishing the project, automated scripts have been provided. These scripts will help you install the correct .NET SDK for your architecture and publish the project without manual intervention.
 
-1. **Instalar o Snap**:
+### Running the Automated Scripts
 
-```bash
+1. **Download the Setup Script**:
+   - This script installs the required .NET SDK based on your chosen architecture (e.g., `x64`, `arm64`).
+   
+   To run the script:
+
+   ```bash
+   chmod +x setup.sh
+   ./setup.sh
+   ```
+
+   Follow the on-screen instructions to select your target architecture, and the script will handle the rest.
+
+2. **Download the Publish Script**:
+   - This script publishes the project, turning it into an executable, and ensures serial port permissions are correctly set.
+   
+   To run the script:
+
+   ```bash
+   chmod +x publish.sh
+   ./publish.sh
+   ```
+
+   This script also lets you choose the architecture for the publish target and automatically sets the necessary permissions for accessing `/dev/ttyUSB0`.
+
+After running these scripts, the .NET SDK will be installed, and the project will be published, ready to run on your system.
+
+---
+
+## Installing .NET 8.0 on Linux
+
+### Manual Installation
+
+1. **Install Required Dependencies**:
+
+   ```bash
    sudo apt update
-   sudo apt install snapd
-```
-   
-3. **Instalar o .NET SDK:**
+   sudo apt install tar
+   ```
 
-```bash
-   sudo snap install dotnet-sdk --channel=8.0 --classic
-```
-   
-4. **Configurar o Alias:**
-   
-```bash
-   sudo snap alias dotnet-sdk.dotnet dotnet
-```
+2. **Download the .NET 8.0 SDK**:
 
-### Usando o Script de Instalação
-1. Baixar o Script de Instalação:
+   Navigate to https://dotnet.microsoft.com/en-us/download/dotnet/8.0 page and download the most suitable SDK for you.
 
-```bash
-  mkdir $HOME/dotnet_install && cd $HOME/dotnet_install
-  curl -L https://aka.ms/install-dotnet-preview -o install-dotnet-preview.sh
-```
+3. **Create Directory and Extract SDK**:
 
-4. Executar o Script:
-   
-```bash
-   sudo bash install-dotnet-preview.sh
-```
-   
-### Verificar a Instalação
+   ```bash
+   mkdir -p $HOME/dotnet
+   tar -zxf dotnet-sdk-8.0.100-linux-arm64.tar.gz -C $HOME/dotnet
+   ```
 
-```bash
+4. **Set Environment Variables**:
+
+   Add the following lines to your `.bashrc` to make the SDK available in future sessions:
+
+   ```bash
+   vim ~/.bashrc
+   ```
+
+   Add:
+
+   ```bash
+   # .NET SDK environment setup
+   export DOTNET_ROOT=$HOME/dotnet
+   export PATH=$HOME/dotnet:$PATH
+   ```
+
+   Save the file and reload your shell:
+
+   ```bash
+   source ~/.bashrc
+   ```
+
+5. **Verify Installation**:
+
+   ```bash
    dotnet --version
-```
-   
-   Isso deve retornar a versão do .NET instalada. O projeto foi feito na versão 8.0.
+   ```
 
-## Publicar o Projeto:
+   This should return the installed version, like `8.0.100`.
 
-No seu ambiente de desenvolvimento (ou terminal), navegue até o diretório do seu projeto.
-Use o comando a seguir para publicar o projeto, criando uma versão que pode ser executada no Linux:
+## Publish the Project:
 
-```bash
-  dotnet publish -c Release -r linux-x64 --self-contained
-```
-  
-Este comando cria uma pasta publish dentro do diretório bin/Release/net8.0/linux-x64, contendo todos os arquivos necessários para executar o aplicativo.
-
-## Executar o Aplicativo:
-
-No terminal do Linux, navegue até o diretório onde você copiou os arquivos publicados.
-Torne o arquivo executável com o comando:
+In your development environment (or terminal), navigate to the project directory.
+Use the following command to publish the project, creating a version that can run on Linux ARM64 (for Raspberry Pi), linux-arm64 flag must be changed depending on your system's architecture:
 
 ```bash
-  chmod +x DriverUSB
+  dotnet publish -c Release -r linux-arm64 --self-contained
 ```
 
-Execute o aplicativo com:
+This command creates a `publish` folder inside the `bin/Release/net8.0/linux-arm64` directory, containing all the files necessary to run the application.
 
-```bash
-  ./DriverUSB
-```
+## Run the Application:
 
-## Considerações
-Permissões de Porta Serial: Certifique-se de que você tem as permissões necessárias para acessar portas seriais no Linux. Você pode precisar adicionar seu usuário ao grupo dialout:
+1. Navigate to the directory where the published files are located:
+
+   ```bash
+   cd bin/Release/net8.0/linux-arm64/publish
+   ```
+
+2. Make the file executable with the following command:
+
+   ```bash
+   sudo chmod +x DriverUSB
+   ```
+
+3. Run the application with:
+
+   ```bash
+   ./DriverUSB
+   ```
+
+
+## Considerations
+
+### Serial Port Permissions:
+
+To access the serial port `/dev/ttyUSB0`, you need the appropriate permissions. Add your user to the `dialout` group:
 
 ```bash
   sudo usermod -aG dialout $USER
 ```
 
-Depois, reinicie a sessão ou o sistema para que as alterações tenham efeito.
+Log out and log back in (or reboot) for the changes to take effect.
 
-Dependências: Se você optou por não usar a opção --self-contained, certifique-se de que o .NET Runtime está instalado no sistema Linux.
+### Serial Port Troubleshooting:
 
-Erros de Execução: Se encontrar erros, verifique as mensagens de log para diagnosticar problemas, como portas incorretas ou dispositivos não conectados.
+If you get an "Access to the port ttyUSB0 is denied" error, ensure that:
 
-# Usando GPIOs no Raspberry ao invés da porta USB
+- The correct permissions are set (you are in the `dialout` group).
+- No other processes are using `/dev/ttyUSB0`.
 
-Para usar uma porta serial em um Raspberry Pi através de GPIOs, você precisará configurar o Raspberry Pi para usar os pinos GPIO como uma porta serial e depois ajustar seu código para abrir essa porta. Aqui estão os passos gerais para fazer isso:
-Configuração do Raspberry Pi
+## Using GPIOs on Raspberry Pi Instead of the USB Port
 
+To use the serial port via GPIO pins on a Raspberry Pi, you'll need to configure the GPIOs as a serial port.
 
-## Habilitar a Porta Serial:
+### Enable the Serial Port:
 
-No Raspberry Pi, você pode habilitar a porta serial usando o raspi-config.
+1. Run the following command to open the configuration tool:
 
-```bash  
-   codesudo raspi-config
-```
+   ```bash
+   sudo raspi-config
+   ```
 
-Navegue até Interfacing Options > Serial.
-Escolha No quando perguntado se você quer que o console use a porta serial.
-Escolha Yes para habilitar a interface serial.
+2. Navigate to `Interfacing Options > Serial`.
 
-## Conectar os Pinos GPIO:
+3. When asked if you want the console to use the serial port, choose `No`.
 
-Conecte os pinos GPIO 14 (TX) e GPIO 15 (RX) aos dispositivos que você deseja comunicar.
-Certifique-se de usar um conversor de nível lógico se o dispositivo não operar em 3.3V.
+4. Choose `Yes` to enable the serial interface.
 
-## Alterações no Código
-No seu código .NET, você precisará abrir a porta serial correta. O nome da porta pode variar, mas geralmente será algo como /dev/serial0 ou /dev/ttyS0.
-Aqui está um exemplo de como você pode abrir a porta serial em C#:
+### Connect the GPIO Pins:
 
+Connect the **GPIO 14 (TX)** and **GPIO 15 (RX)** to the devices you wish to communicate with. If the device operates at a voltage different than 3.3V, use a logic level converter.
+
+### Code Modifications
+
+In your .NET code, open the correct serial port. The port name could be `/dev/serial0` or `/dev/ttyS0`.
+
+Example code for opening a serial port in C#:
 
 ```csharp
-using System;
-using System.IO.Ports;
-class Program
-{
-    static void Main()
+    static void Main(string[] args)
     {
-        // Substitua "/dev/serial0" pelo nome correto da porta serial
-        string portName = "/dev/serial0"; // ou "/dev/ttyS0"
-        int baudRate = 9600; // Ajuste o baud rate conforme necessário
+        Console.WriteLine("Início do Driver USB/Serial do IrrigoSystem!");
 
-        using (SerialPort serialPort = new SerialPort(portName, baudRate))
+        xbee = new XBee();
+        xbee.RecebeDados += XBee_DataReceived;
+        xbee.XBeeClient("/dev/ttyUSB0"); // Port name. On Linux, serial ports are usually
+                                 // named as / dev / ttyUSB0, / dev / ttyS0, etc.
+                                 // Ensure that this part is set following the correct format
+        xbee.Connect();
+
+        sensor = new Sensor();
+
+        Console.WriteLine("Pressione qualquer tecla para sair...");
+        Console.ReadKey();
+    }
+
+    private static void XBee_DataReceived(byte tamanho, byte adress, byte[] bufferBytes)
+    {
+        switch (tamanho)
         {
-            try
-            {
-                serialPort.Open();
-                Console.WriteLine("Porta serial aberta com sucesso!");
-
-                // Exemplo de escrita na porta
-                serialPort.WriteLine("Olá, Raspberry Pi!");
-
-                // Exemplo de leitura da porta
-                string response = serialPort.ReadLine();
-                Console.WriteLine("Resposta recebida: " + response);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Erro ao abrir a porta serial: " + ex.Message);
-            }
+            case 0x4D:
+                {
+                    sensor.recebeDados(bufferBytes);
+                    Console.WriteLine(sensor.SensorId.ToString());
+                    Console.WriteLine(sensor.Umidade.ToString());
+                    Console.WriteLine(sensor.Salinidade.ToString());
+                    Console.WriteLine(sensor.Tsensor.ToString());
+                }
+                break;
         }
     }
-}
 ```
 
-## Considerações
+### GPIO Permissions:
 
-Permissões: Certifique-se de que o usuário que está executando o programa tem permissão para acessar a porta serial. Você pode precisar adicionar o usuário ao grupo dialout:
+Make sure your user has permission to access the serial port. Add your user to the `dialout` group if necessary:
 
-```bash 
-   codesudo usermod -aG dialout $USER
+```bash
+  sudo usermod -aG dialout $USER
 ```
 
-Configuração do Baud Rate: Ajuste o baud rate e outras configurações da porta serial para corresponder ao dispositivo conectado.
+### Baud Rate Configuration:
 
-Bibliotecas: Certifique-se de que o .NET Core está instalado corretamente no Raspberry Pi e que você tem acesso à biblioteca System.IO.Ports.
+Make sure the baud rate and other serial port settings match those of the connected device.
+
+### Libraries:
+
+Ensure that .NET is installed correctly and that you have access to the `System.IO.Ports` library.
