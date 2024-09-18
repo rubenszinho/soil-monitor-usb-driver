@@ -23,7 +23,7 @@ esac
 dotnet publish -c Release -r $ARCH --self-contained
 
 echo "Making the file executable..."
-sudo chmod +x bin/Release/net8.0/$ARCH/publish/DriverUSB
+sudo chmod +x DriverUSB/bin/Release/net8.0/$ARCH/publish/DriverUSB
 
 echo "Adding the user to the dialout group..."
 sudo usermod -aG dialout $USER
@@ -32,5 +32,5 @@ echo "You need to log out and log back in for the group changes to take effect."
 
 echo "Setup complete!"
 echo "To run the application, navigate to the publish directory and execute:"
-echo "cd bin/Release/net8.0/$ARCH/publish/"
+echo "cd DriverUSB/bin/Release/net8.0/$ARCH/publish/"
 echo "./DriverUSB"
