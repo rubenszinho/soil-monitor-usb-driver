@@ -17,5 +17,5 @@ echo "Você precisa sair e entrar novamente para que as alterações de grupo te
 
 echo "Configuração concluída!"
 echo "Para executar o aplicativo, navegue até o diretório de publicação e execute:"
-echo "cd bin/Release/net8.0/linux-x64/publish/"
+echo "cd bin/Release/net8.0/linux-arm64/publish/"
 echo "./DriverUSB"

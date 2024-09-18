@@ -12,7 +12,7 @@ class Program
 
         xbee = new XBee();
         xbee.RecebeDados += XBee_DataReceived;
-        xbee.XBeeClient("ttyUSB0"); // nome da porta. No Linux, as portas seriais são geralmente
+        xbee.XBeeClient("/dev/ttyUSB0"); // nome da porta. No Linux, as portas seriais são geralmente
                                  // nomeadas como / dev / ttyUSB0, / dev / ttyS0, etc.
                                  // Certifique - se de que seu código está configurado para
                                  // acessar a porta correta.
