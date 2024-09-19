@@ -25,7 +25,7 @@ class Program
         Console.ReadKey();
     }
 
-    private static void XBee_DataReceived(byte tamanho, byte adress, byte[] bufferBytes)
+    private static void XBee_DataReceived(byte tamanho, byte address, byte[] bufferBytes)
     {
         switch (tamanho) // seleciona pelo byte de tamanho do pacote XBEE
         {
