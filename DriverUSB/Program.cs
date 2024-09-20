@@ -1,44 +1,77 @@
 ﻿using DriverUSB;
 using System;
+using MQTTnet;
+using MQTTnet.Client;
+using MQTTnet.Client.Options;
+using System.Text;
+using System.Threading.Tasks;
 
 class Program
 {
     private static XBee xbee;
     private static Sensor sensor;
+    private static IMqttClient mqttClient;
 
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         Console.WriteLine("Início do Driver USB/Serial do IrrigoSystem!");
 
+        var factory = new MqttFactory();
+        mqttClient = factory.CreateMqttClient();
+
+        var options = new MqttClientOptionsBuilder()
+            .WithClientId("IrrigoSystemPublisher")
+            .WithTcpServer("localhost", 1883)
+
+        await mqttClient.ConnectAsync(options, CancellationToken.None);
+        Console.WriteLine("Conectado ao broker MQTT.");
+
         xbee = new XBee();
         xbee.RecebeDados += XBee_DataReceived;
-        xbee.XBeeClient("/dev/ttyUSB0"); // nome da porta. No Linux, as portas seriais são geralmente
-                                 // nomeadas como / dev / ttyUSB0, / dev / ttyS0, etc.
-                                 // Certifique - se de que seu código está configurado para
-                                 // acessar a porta correta.
+        xbee.XBeeClient("/dev/ttyUSB0");
         xbee.Connect();
 
         sensor = new Sensor();
 
-        // Adiciona uma pausa para manter o programa em execução
         Console.WriteLine("Pressione qualquer tecla para sair...");
         Console.ReadKey();
     }
 
-    private static void XBee_DataReceived(byte tamanho, byte address, byte[] bufferBytes)
+    private static async void XBee_DataReceived(byte tamanho, byte address, byte[] bufferBytes)
     {
-        switch (tamanho) // seleciona pelo byte de tamanho do pacote XBEE
+        if (tamanho == 0x4D)
         {
-            case 0x4D:
+            {
+                sensor.recebeDados(bufferBytes);
+                string deviceId = sensor.SensorId.ToString();
+                string[] dataTypes = new string[] { "humidity", "salinity", "temperature" };
+                double[] measuredValues = new double[] { sensor.Umidade, sensor.Salinidade, sensor.Tsensor };
+                DateTime timestamp = sensor.dadosSensorIrrigacao;
+
+                for (int i = 0; i < measuredValues.Length; i++)
                 {
-                    sensor.recebeDados(bufferBytes);
-                    // basta selecionar a variável do sensor que deseja imprimir
-                    Console.WriteLine(sensor.SensorId.ToString());
-                    Console.WriteLine(sensor.Umidade.ToString());
-                    Console.WriteLine(sensor.Salinidade.ToString());
-                    Console.WriteLine(sensor.Tsensor.ToString());
+                    string payload = $"{{ \"value\": \"{measuredValues[i]}\", \"timestamp\": \"{timestamp.ToString("o")}\" }}";
+
+                    string topic = $"data/coordinator/sensor/soil/{deviceId}/{dataTypes[i]}";
+
+                    var message = new MqttApplicationMessageBuilder()
+                        .WithTopic(topic)
+                        .WithPayload(payload)
+                        .WithExactlyOnceQoS()
+                        .WithRetainFlag()
+                        .Build();
+
+                    if (mqttClient.IsConnected)
+                    {
+                        await mqttClient.PublishAsync(message, CancellationToken.None);
+                        Console.WriteLine($"Published {dataTypes[i]} data to {topic} with timestamp.");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Failed to publish {dataTypes[i]} data. MQTT client not connected.");
+                    }
                 }
-                break;
+            }
         }
     }
 }
