@@ -21,7 +21,7 @@ class Program
 
         var options = new MqttClientOptionsBuilder()
             .WithClientId("IrrigoSystemPublisher")
-            .WithTcpServer("localhost", 1883)
+            .WithTcpServer("localhost", 1883);
 
         await mqttClient.ConnectAsync(options, CancellationToken.None);
         Console.WriteLine("Conectado ao broker MQTT.");
