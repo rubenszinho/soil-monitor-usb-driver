@@ -160,39 +160,60 @@ Each MQTT message includes both the sensor value and the timestamp of the readin
 
 ## For Collaborators
 
-1. **Install `BlackBox`:**
-   - **macOS**:
-     ```bash
-     brew install blackbox
-     ```
-   - **Linux (Debian/Ubuntu)**:
-     ```bash
-     sudo apt-get install blackbox
-     ```
-   - **Windows**:
-     - On Windows, you can use `WSL` (Windows Subsystem for Linux) to install `BlackBox` the same way as on Linux, or set up a Unix-like terminal environment using tools like Git Bash and follow the Linux installation steps.
+### Setting up Blackbox for File Encryption
 
-2. **Retrieve the Encrypted GPG Key:**
-   - The GPG key is stored as a secret in the repository via AWS Secrets Manager.
-   - Request access from the project maintainer to retrieve the GPG key
+To securely encrypt sensitive files in this project using **StackExchange Blackbox**, follow these steps:
 
-3. **Import the GPG Key on Your Machine:**
-   - Once you have obtained the GPG key, import it using the following command:
-     ```bash
-     echo "base64_encoded_key" | base64 --decode | gpg --import
-     ```
-   - Replace `"base64_encoded_key"` with the actual base64-encoded GPG key value provided to you.
+#### 1. Install `BlackBox`
+You can automatically install StackExchange Blackbox via the following commands:
 
-4. **Verify the Key Import:**
-   - After importing, verify that the key was successfully added by running:
-     ```bash
-     gpg --list-keys
-     ```
-   - You should see the imported GPG key in the list of available keys.
+```bash
+git clone https://github.com/StackExchange/blackbox.git
+cd blackbox
+sudo make copy-install
+```
+This will copy the necessary files into `/usr/local/bin`.
 
-5. **Decrypt Files Using `BlackBox`:**
-   - With the GPG key imported, run the following command to decrypt all files in the repository:
-     ```bash
-     blackbox_decrypt_all_files
-     ```
-   - This will decrypt all protected files, making them accessible for your work.
+#### 2. Obtain the Encoded GPG Keys
+The **public** and **private** Base64-encoded GPG keys are stored in the repository's "Secrets." 
+Ask the project maintainer to share the keys with you if you do not have access yet.
+
+You will receive:
+- A **Base64-encoded public key**
+- A **Base64-encoded private key**
+
+#### 3. Import the Public Key
+Once you receive the **Base64-encoded public key**, use the following command to decode and import it:
+
+```bash
+echo "base64_encoded_public_key" | base64 --decode | gpg --import
+```
+
+- Replace `base64_encoded_public_key` with the actual Base64-encoded string of the public key.
+
+#### 4. Import the Private Key
+After importing the public key, you'll also need to import the **private key** for decryption purposes. To do that, use the following command:
+
+```bash
+echo "base64_encoded_private_key" | base64 --decode | gpg --import
+```
+
+- Replace `base64_encoded_private_key` with the actual Base64-encoded string of the private key.
+
+#### 5. Verify the Import
+You can verify if both keys were successfully imported with the following command:
+
+```bash
+gpg --list-secret-keys
+```
+
+This will list the GPG keys on your system, and you should see both the public and private key associated with your GPG email.
+
+#### 6. Decrypt Files with `BlackBox`
+With both the public and private keys imported, you can now decrypt the files in your project:
+
+```bash
+blackbox_decrypt_all_files
+```
+
+This command will decrypt all files that were encrypted with Blackbox, using your imported GPG keys.
