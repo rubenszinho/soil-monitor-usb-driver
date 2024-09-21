@@ -1,8 +1,8 @@
 ﻿using DriverUSB;
+using DriverUSB;
 using System;
 using MQTTnet;
 using MQTTnet.Client;
-using MQTTnet.Client.Options;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -23,7 +23,7 @@ class Program
             .WithClientId("IrrigoSystemPublisher")
             .WithTcpServer("localhost", 1883);
 
-        await mqttClient.ConnectAsync(options, CancellationToken.None);
+        await mqttClient.ConnectAsync(options.Build(), CancellationToken.None);
         Console.WriteLine("Conectado ao broker MQTT.");
 
         xbee = new XBee();
@@ -46,7 +46,7 @@ class Program
                 string deviceId = sensor.SensorId.ToString();
                 string[] dataTypes = new string[] { "humidity", "salinity", "temperature" };
                 double[] measuredValues = new double[] { sensor.Umidade, sensor.Salinidade, sensor.Tsensor };
-                DateTime timestamp = sensor.dadosSensorIrrigacao;
+                DateTime timestamp = DateTime.Parse(sensor.dadosSensorIrrigacao);
 
                 for (int i = 0; i < measuredValues.Length; i++)
                 {
@@ -57,7 +57,7 @@ class Program
                     var message = new MqttApplicationMessageBuilder()
                         .WithTopic(topic)
                         .WithPayload(payload)
-                        .WithExactlyOnceQoS()
+                        .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
                         .WithRetainFlag()
                         .Build();
 
