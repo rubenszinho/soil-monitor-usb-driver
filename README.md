@@ -1,219 +1,198 @@
-# Steps to Run a .NET Project on Linux
+# USB Driver for the Landslide Soil Monitoring Station
 
-USB driver for the soil moisture monitoring station.
+## Project Overview
 
-## Automated Installation and Publishing (arm64 and x64 only)
+This project is a C# implementation of a USB driver that facilitates communication between a soil moisture monitoring station and a computer via a USB-to-Serial TTL conversion. The monitoring station collects data such as soil salinity, humidity, temperature, and other environmental metrics, which are transmitted over a serial interface using a **USB to Serial TTL Converter**.
 
-To simplify the process of setting up and publishing the project, automated scripts have been provided. These scripts will help you install the correct .NET SDK for your architecture and publish the project without manual intervention.
+The driver collects this data, processes it, and publishes it to an MQTT broker, enabling real-time data delivery to downstream systems that subscribe to these topics. The driver ensures seamless and accurate transmission of the data to an MQTT broker for further processing or monitoring.
+
+### Key Features:
+- **USB to Serial TTL Conversion**: Handles the USB data received from the soil moisture monitoring station via a Serial TTL interface.
+- **Data Publishing via MQTT**: Publishes sensor data (such as salinity, humidity, and temperature) to an MQTT broker for real-time monitoring.
+- **Supports Multiple Sensor Types**: Designed to handle multiple data origins, ensuring scalability as more sensors are added to the system.
+- **Cross-Platform Support**: Designed to run on Linux, particularly on ARM64 devices like Raspberry Pi.
+
+### Key Technologies:
+- **C#**: Core language used for the driver and MQTT client implementation.
+- **MQTT**: Data is published to an MQTT broker using the [MQTTnet](https://github.com/dotnet/MQTTnet) library.
+- **Serial Communication**: Handles communication via USB/Serial TTL to gather data from the monitoring station.
+
+---
+
+## Automated Installation and Publishing (ARM64 and x64 only)
 
 ### Running the Automated Scripts
 
 1. **Download the Setup Script**:
-   - This script installs the required .NET SDK based on your chosen architecture (e.g., `x64`, `arm64`).
+   - Installs the required .NET SDK for your architecture (`x64`, `arm64`).
    
-   To run the script:
-
    ```bash
    chmod +x setup.sh
    ./setup.sh
    ```
 
-   Follow the on-screen instructions to select your target architecture, and the script will handle the rest.
-
 2. **Download the Publish Script**:
-   - This script publishes the project, turning it into an executable, and ensures serial port permissions are correctly set.
+   - Publishes the project, turning it into an executable, and ensures serial port permissions are correctly set.
    
-   To run the script:
-
    ```bash
    chmod +x publish.sh
    ./publish.sh
    ```
 
-   This script also lets you choose the architecture for the publish target and automatically sets the necessary permissions for accessing `/dev/ttyUSB0`.
-
-After running these scripts, the .NET SDK will be installed, and the project will be published, ready to run on your system.
+After running these scripts, the .NET SDK will be installed, and the project will be published, ready to run.
 
 ---
 
-## Installing .NET 8.0 on Linux
-
-### Manual Installation
+## Manual Installation
 
 1. **Install Required Dependencies**:
-
    ```bash
    sudo apt update
    sudo apt install tar
    ```
 
-2. **Download the .NET 8.0 SDK**:
+2. **Download the .NET 8.0 SDK** from [here](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
 
-   Navigate to https://dotnet.microsoft.com/en-us/download/dotnet/8.0 page and download the most suitable SDK for you.
-
-3. **Create Directory and Extract SDK**:
-
+3. **Extract and Setup SDK**:
    ```bash
    mkdir -p $HOME/dotnet
    tar -zxf dotnet-sdk-8.0.100-linux-arm64.tar.gz -C $HOME/dotnet
    ```
 
-4. **Set Environment Variables**:
-
-   Add the following lines to your `.bashrc` to make the SDK available in future sessions:
-
+4. **Set Environment Variables** in your `.bashrc`:
    ```bash
-   vim ~/.bashrc
-   ```
-
-   Add:
-
-   ```bash
-   # .NET SDK environment setup
    export DOTNET_ROOT=$HOME/dotnet
    export PATH=$HOME/dotnet:$PATH
-   ```
-
-   Save the file and reload your shell:
-
-   ```bash
    source ~/.bashrc
    ```
 
 5. **Verify Installation**:
-
    ```bash
    dotnet --version
    ```
 
-   This should return the installed version, like `8.0.100`.
+---
 
-## Publish the Project:
+## Publish and Run the Project
 
-In your development environment (or terminal), navigate to the project directory.
-Use the following command to publish the project, creating a version that can run on Linux ARM64 (for Raspberry Pi), linux-arm64 flag must be changed depending on your system's architecture:
-
+To publish the project:
 ```bash
-  dotnet publish -c Release -r linux-arm64 --self-contained
+dotnet publish -c Release -r linux-arm64 --self-contained
 ```
 
-This command creates a `publish` folder inside the `bin/Release/net8.0/linux-arm64` directory, containing all the files necessary to run the application.
-
-## Run the Application:
-
-1. Navigate to the directory where the published files are located:
-
-   ```bash
-   cd bin/Release/net8.0/linux-arm64/publish
-   ```
-
-2. Make the file executable with the following command:
-
-   ```bash
-   sudo chmod +x DriverUSB
-   ```
-
-3. Run the application with:
-
-   ```bash
-   ./DriverUSB
-   ```
-
-
-## Considerations
-
-### Serial Port Permissions:
-
-To access the serial port `/dev/ttyUSB0`, you need the appropriate permissions. Add your user to the `dialout` group:
-
+Navigate to the directory where the published files are located and make the file executable:
 ```bash
-  sudo usermod -aG dialout $USER
+cd bin/Release/net8.0/linux-arm64/publish
+sudo chmod +x DriverUSB
 ```
 
-Log out and log back in (or reboot) for the changes to take effect.
+To run the application:
+```bash
+./DriverUSB
+```
 
-### Serial Port Troubleshooting:
+---
 
-If you get an "Access to the port ttyUSB0 is denied" error, ensure that:
+## Serial Port Permissions
 
-- The correct permissions are set (you are in the `dialout` group).
-- No other processes are using `/dev/ttyUSB0`.
+To access the serial port (`/dev/ttyUSB0`), you need to be in the `dialout` group:
+```bash
+sudo usermod -aG dialout $USER
+```
 
-## Using GPIOs on Raspberry Pi Instead of the USB Port
+Log out and log back in for the changes to take effect.
 
-To use the serial port via GPIO pins on a Raspberry Pi, you'll need to configure the GPIOs as a serial port.
+---
 
-### Enable the Serial Port:
+## Project Code Structure
 
-1. Run the following command to open the configuration tool:
+The project contains the following files:
 
+1. **Program.cs**: Main entry point of the program. Manages communication between the XBee module and the MQTT broker. This file handles the serial data reception and publishes sensor data to the broker.
+   
+2. **XBee.cs**: A class responsible for managing the serial communication with the XBee module, handling data reception, and ensuring data is correctly transmitted. 
+
+3. **Sensor.cs**: A class that processes the raw data received from the soil moisture sensor. It parses the data, extracting important metrics such as humidity, salinity, temperature, and more.
+
+---
+
+## Using GPIOs on Raspberry Pi
+
+If you prefer to use GPIOs instead of USB, configure the serial port and modify the code to use the GPIO pins for communication. 
+
+Make sure to:
+1. **Enable Serial Port**: 
    ```bash
    sudo raspi-config
    ```
 
-2. Navigate to `Interfacing Options > Serial`.
+2. **Connect GPIO Pins**: Use GPIO 14 (TX) and GPIO 15 (RX).
 
-3. When asked if you want the console to use the serial port, choose `No`.
-
-4. Choose `Yes` to enable the serial interface.
-
-### Connect the GPIO Pins:
-
-Connect the **GPIO 14 (TX)** and **GPIO 15 (RX)** to the devices you wish to communicate with. If the device operates at a voltage different than 3.3V, use a logic level converter.
-
-### Code Modifications
-
-In your .NET code, open the correct serial port. The port name could be `/dev/serial0` or `/dev/ttyS0`.
-
-Example code for opening a serial port in C#:
-
+Modify the serial port in the code to use `/dev/serial0` or `/dev/ttyS0`:
 ```csharp
-    static void Main(string[] args)
-    {
-        Console.WriteLine("Início do Driver USB/Serial do IrrigoSystem!");
-
-        xbee = new XBee();
-        xbee.RecebeDados += XBee_DataReceived;
-        xbee.XBeeClient("/dev/ttyUSB0"); // Port name. On Linux, serial ports are usually
-                                 // named as / dev / ttyUSB0, / dev / ttyS0, etc.
-                                 // Ensure that this part is set following the correct format
-        xbee.Connect();
-
-        sensor = new Sensor();
-
-        Console.WriteLine("Pressione qualquer tecla para sair...");
-        Console.ReadKey();
-    }
-
-    private static void XBee_DataReceived(byte tamanho, byte adress, byte[] bufferBytes)
-    {
-        switch (tamanho)
-        {
-            case 0x4D:
-                {
-                    sensor.recebeDados(bufferBytes);
-                    Console.WriteLine(sensor.SensorId.ToString());
-                    Console.WriteLine(sensor.Umidade.ToString());
-                    Console.WriteLine(sensor.Salinidade.ToString());
-                    Console.WriteLine(sensor.Tsensor.ToString());
-                }
-                break;
-        }
-    }
+xbee.XBeeClient("/dev/serial0");
 ```
 
-### GPIO Permissions:
+---
 
-Make sure your user has permission to access the serial port. Add your user to the `dialout` group if necessary:
+### Serial Port Troubleshooting
 
-```bash
-  sudo usermod -aG dialout $USER
+If you encounter issues accessing the serial port, ensure you are part of the `dialout` group, and no other process is using the port.
+
+---
+
+## Data Publishing via MQTT
+
+Sensor data is published to the MQTT broker under structured topics like:
+
+```
+data/coordinator/sensor/soil/<device_id>/<data_type>
 ```
 
-### Baud Rate Configuration:
+For example:
+- `data/coordinator/sensor/soil/123/humidity`
+- `data/coordinator/sensor/soil/123/salinity`
+- `data/coordinator/sensor/soil/123/temperature`
 
-Make sure the baud rate and other serial port settings match those of the connected device.
+Each MQTT message includes both the sensor value and the timestamp of the reading.
 
-### Libraries:
+---
 
-Ensure that .NET is installed correctly and that you have access to the `System.IO.Ports` library.
+## For Collaborators
+
+1. **Install `BlackBox`:**
+   - **macOS**:
+     ```bash
+     brew install blackbox
+     ```
+   - **Linux (Debian/Ubuntu)**:
+     ```bash
+     sudo apt-get install blackbox
+     ```
+   - **Windows**:
+     - On Windows, you can use `WSL` (Windows Subsystem for Linux) to install `BlackBox` the same way as on Linux, or set up a Unix-like terminal environment using tools like Git Bash and follow the Linux installation steps.
+
+2. **Retrieve the Encrypted GPG Key:**
+   - The GPG key is stored as a secret in the repository via AWS Secrets Manager.
+   - Request access from the project maintainer to retrieve the GPG key
+
+3. **Import the GPG Key on Your Machine:**
+   - Once you have obtained the GPG key, import it using the following command:
+     ```bash
+     echo "base64_encoded_key" | base64 --decode | gpg --import
+     ```
+   - Replace `"base64_encoded_key"` with the actual base64-encoded GPG key value provided to you.
+
+4. **Verify the Key Import:**
+   - After importing, verify that the key was successfully added by running:
+     ```bash
+     gpg --list-keys
+     ```
+   - You should see the imported GPG key in the list of available keys.
+
+5. **Decrypt Files Using `BlackBox`:**
+   - With the GPG key imported, run the following command to decrypt all files in the repository:
+     ```bash
+     blackbox_decrypt_all_files
+     ```
+   - This will decrypt all protected files, making them accessible for your work.
