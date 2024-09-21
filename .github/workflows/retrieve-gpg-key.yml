@@ -15,7 +15,7 @@ jobs:
         id: check_secret
         run: |
           set +e
-          aws secretsmanager describe-secret --secret-id landslide-monitoring-usb-driver --region ${{ secrets.AWS_REGION }}
+          aws secretsmanager describe-secret --secret-id landslide-monitoring-usb-driver-gpg-key --region ${{ secrets.AWS_REGION }}
           if [ $? -eq 0 ]; then
             echo "secret_exists=true" >> $GITHUB_ENV
           else
@@ -31,7 +31,7 @@ jobs:
         if: env.secret_exists == 'false'
         run: |
           aws secretsmanager create-secret \
-            --name landslide-monitoring-usb-driver \
+            --name landslide-monitoring-usb-driver-gpg-key \
             --secret-string "${{ secrets.GPG_PRIVATE_KEY }}" \
             --region ${{ secrets.AWS_REGION }}
         env:
