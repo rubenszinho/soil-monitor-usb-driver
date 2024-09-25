@@ -46,35 +46,49 @@ class Program
             double[] measuredValues = new double[] { sensor.Umidade, sensor.Salinidade, sensor.Tsensor };
 
             // Split sensor.dadosSensorIrrigacao to extract date and time
-            string[] dataParts = sensor.dadosSensorIrrigacao.Split(',');
+            string[] dataParts = sensor.dadosSensorIrrigacao.Split("','");
 
-            string datePart = dataParts[0];
-            string timePart = dataParts[1];
-
-            DateTime timestamp = DateTime.Parse($"{datePart} {timePart}");
-
-            for (int i = 0; i < measuredValues.Length; i++)
+            if (dataParts.Length >= 2)
             {
-                string payload = $"{{ \"value\": \"{measuredValues[i]}\", \"timestamp\": \"{timestamp.ToString("o")}\" }}";
+                string datePart = dataParts[0].Trim();
+                string timePart = dataParts[1].Trim();
 
-                string topic = $"data/coordinator/sensor/soil/{deviceId}/{dataTypes[i]}";
+                string dateTimeString = $"{datePart} {timePart}";
 
-                var message = new MqttApplicationMessageBuilder()
-                    .WithTopic(topic)
-                    .WithPayload(payload)
-                    .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
-                    .WithRetainFlag()
-                    .Build();
-
-                if (mqttClient.IsConnected)
+                if (DateTime.TryParse(dateTimeString, out DateTime timestamp))
                 {
-                    await mqttClient.PublishAsync(message, CancellationToken.None);
-                    Console.WriteLine($"Published {dataTypes[i]} data to {topic} with timestamp.");
+                    for (int i = 0; i < measuredValues.Length; i++)
+                    {
+                        string payload = $"{{ \"value\": \"{measuredValues[i]}\", \"timestamp\": \"{timestamp.ToString("o")}\" }}";
+
+                        string topic = $"data/coordinator/sensor/soil/{deviceId}/{dataTypes[i]}";
+
+                        var message = new MqttApplicationMessageBuilder()
+                            .WithTopic(topic)
+                            .WithPayload(payload)
+                            .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
+                            .WithRetainFlag()
+                            .Build();
+
+                        if (mqttClient.IsConnected)
+                        {
+                            await mqttClient.PublishAsync(message, CancellationToken.None);
+                            Console.WriteLine($"Published {dataTypes[i]} data to {topic} with timestamp.");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Failed to publish {dataTypes[i]} data. MQTT client not connected.");
+                        }
+                    }
                 }
                 else
                 {
-                    Console.WriteLine($"Failed to publish {dataTypes[i]} data. MQTT client not connected.");
+                    Console.WriteLine("Failed to parse timestamp.");
                 }
+            }
+            else
+            {
+                Console.WriteLine("Invalid sensor data format, unable to extract date and time.");
             }
         }
     }
