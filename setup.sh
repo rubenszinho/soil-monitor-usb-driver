@@ -34,18 +34,18 @@ if [[ ! -f "dotnet-sdk-8.0.100-linux-$ARCH.tar.gz" ]]; then
 fi
 
 echo "Creating directory for .NET SDK..."
-mkdir -p $HOME/dotnet
+sudo mkdir -p /usr/share/dotnet
 
 echo "Extracting .NET SDK..."
-tar -zxf dotnet-sdk-8.0.100-linux-$ARCH.tar.gz -C $HOME/dotnet
+sudo tar -zxf dotnet-sdk-8.0.100-linux-$ARCH.tar.gz -C /usr/share/dotnet
 
 echo "Adding .NET to the PATH..."
-export DOTNET_ROOT=$HOME/dotnet
-export PATH=$HOME/dotnet:$PATH
+export DOTNET_ROOT=/usr/share/dotnet
+export PATH=/usr/share/dotnet:$PATH
 
 echo "Updating .bashrc to include .NET in the PATH..."
-echo "export DOTNET_ROOT=\$HOME/dotnet" >> ~/.bashrc
-echo "export PATH=\$HOME/dotnet:\$PATH" >> ~/.bashrc
+echo "export DOTNET_ROOT=/usr/share/dotnet" >> ~/.bashrc
+echo "export PATH=/usr/share/dotnet:\$PATH" >> ~/.bashrc
 
 echo "Verifying .NET installation..."
 dotnet_version=$(dotnet --version)
