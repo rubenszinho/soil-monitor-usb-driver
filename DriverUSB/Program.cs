@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 class Program
 {
-    private static XBee xbee;
-    private static Sensor sensor;
-    private static IMqttClient mqttClient;
+    private static XBee? xbee;
+    private static Sensor? sensor;
+    private static IMqttClient? mqttClient;
 
     static async Task Main(string[] args)
     {
@@ -38,7 +38,7 @@ class Program
 
     private static async void XBee_DataReceived(byte tamanho, byte address, byte[] bufferBytes)
     {
-        if (tamanho == 0x4D)
+        if (tamanho == 0x4D && sensor != null && mqttClient != null)
         {
             sensor.recebeDados(bufferBytes);
             string deviceId = sensor.SensorId.ToString();
