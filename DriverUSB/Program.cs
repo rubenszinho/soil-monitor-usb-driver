@@ -52,10 +52,10 @@ class Program
             {
                 string datePart = dataParts[0].Trim();
                 string timePart = dataParts[1].Trim();
-
                 string dateTimeString = $"{datePart} {timePart}";
+                string dateTimeFormat = "MM/dd/yyyy HH:mm:ss";
 
-                if (DateTime.TryParse(dateTimeString, out DateTime timestamp))
+                if (DateTime.TryParseExact(dateTimeString, dateTimeFormat, null, System.Globalization.DateTimeStyles.None, out DateTime timestamp))
                 {
                     for (int i = 0; i < measuredValues.Length; i++)
                     {
@@ -83,7 +83,7 @@ class Program
                 }
                 else
                 {
-                    Console.WriteLine("Failed to parse timestamp.");
+                    Console.WriteLine($"Failed to parse timestamp: {dateTimeString}");
                 }
             }
             else
