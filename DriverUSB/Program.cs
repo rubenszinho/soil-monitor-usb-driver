@@ -1,5 +1,4 @@
 ﻿using DriverUSB;
-using DriverUSB;
 using System;
 using MQTTnet;
 using MQTTnet.Client;
@@ -41,35 +40,40 @@ class Program
     {
         if (tamanho == 0x4D)
         {
+            sensor.recebeDados(bufferBytes);
+            string deviceId = sensor.SensorId.ToString();
+            string[] dataTypes = new string[] { "humidity", "salinity", "temperature" };
+            double[] measuredValues = new double[] { sensor.Umidade, sensor.Salinidade, sensor.Tsensor };
+
+            // Split sensor.dadosSensorIrrigacao to extract date and time
+            string[] dataParts = sensor.dadosSensorIrrigacao.Split(',');
+
+            string datePart = dataParts[0];
+            string timePart = dataParts[1];
+
+            DateTime timestamp = DateTime.Parse($"{datePart} {timePart}");
+
+            for (int i = 0; i < measuredValues.Length; i++)
             {
-                sensor.recebeDados(bufferBytes);
-                string deviceId = sensor.SensorId.ToString();
-                string[] dataTypes = new string[] { "humidity", "salinity", "temperature" };
-                double[] measuredValues = new double[] { sensor.Umidade, sensor.Salinidade, sensor.Tsensor };
-                DateTime timestamp = DateTime.Parse(sensor.dadosSensorIrrigacao);
+                string payload = $"{{ \"value\": \"{measuredValues[i]}\", \"timestamp\": \"{timestamp.ToString("o")}\" }}";
 
-                for (int i = 0; i < measuredValues.Length; i++)
+                string topic = $"data/coordinator/sensor/soil/{deviceId}/{dataTypes[i]}";
+
+                var message = new MqttApplicationMessageBuilder()
+                    .WithTopic(topic)
+                    .WithPayload(payload)
+                    .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
+                    .WithRetainFlag()
+                    .Build();
+
+                if (mqttClient.IsConnected)
                 {
-                    string payload = $"{{ \"value\": \"{measuredValues[i]}\", \"timestamp\": \"{timestamp.ToString("o")}\" }}";
-
-                    string topic = $"data/coordinator/sensor/soil/{deviceId}/{dataTypes[i]}";
-
-                    var message = new MqttApplicationMessageBuilder()
-                        .WithTopic(topic)
-                        .WithPayload(payload)
-                        .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
-                        .WithRetainFlag()
-                        .Build();
-
-                    if (mqttClient.IsConnected)
-                    {
-                        await mqttClient.PublishAsync(message, CancellationToken.None);
-                        Console.WriteLine($"Published {dataTypes[i]} data to {topic} with timestamp.");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Failed to publish {dataTypes[i]} data. MQTT client not connected.");
-                    }
+                    await mqttClient.PublishAsync(message, CancellationToken.None);
+                    Console.WriteLine($"Published {dataTypes[i]} data to {topic} with timestamp.");
+                }
+                else
+                {
+                    Console.WriteLine($"Failed to publish {dataTypes[i]} data. MQTT client not connected.");
                 }
             }
         }
